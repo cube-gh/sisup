@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>필사를 위한 詩選</title>
-<meta name="description" content="한 자씩 옮겨 적으며 읽는 시. 필사하고, 감상을 남기고, 나의 시를 나누는 곳.">
+<meta name="description" content="한 자씩 옮겨 적으며 읽는 시. 김소월, 한용운의 근대시와 옛 시조를 필사하고, 감상을 남기고, 나의 시를 나누는 곳.">
 <meta name="theme-color" content="#FDFBF7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#16191B" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='8' fill='%23FDFBF7' stroke='%23B5605A' stroke-width='4'/%3E%3Ctext x='32' y='45' font-size='36' text-anchor='middle' fill='%23B5605A' font-family='serif'%3E%E8%A9%A9%3C/text%3E%3C/svg%3E">
@@ -13,7 +13,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="필사를 위한 詩選">
 <meta property="og:title" content="필사를 위한 詩選 · 한 자씩 옮겨 적는 시">
-<meta property="og:description" content="한 자씩 옮겨 적으며 읽는 시. 필사하고, 감상을 남기고, 나의 시를 나누는 곳.">
+<meta property="og:description" content="한 자씩 옮겨 적으며 읽는 시. 김소월, 한용운의 근대시와 옛 시조를 필사하고, 감상을 남기고, 나의 시를 나누는 곳.">
 <meta property="og:url" content="https://cube-gh.github.io/sisup/">
 <meta property="og:image" content="https://cube-gh.github.io/sisup/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -191,6 +191,15 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .share a:hover,.share button:hover{color:var(--ink);border-color:var(--accent)}
 .comments{background:var(--accent-soft);padding:24px clamp(24px,8vw,72px) 30px;border-radius:0 0 6px 6px}
 .comments h4{margin:0 0 12px;font-size:.84rem;color:var(--ink-2);font-weight:500}
+.cut-toggle{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:1px solid var(--accent);background:var(--paper);color:var(--accent-ink);border-radius:999px;padding:12px 18px;font-size:.92rem;font-weight:500;cursor:pointer;transition:background .2s,color .2s,border-color .2s}
+.cut-toggle:hover{background:var(--accent);color:var(--bg)}
+.cut-toggle svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;transition:transform .35s cubic-bezier(.2,.7,.2,1)}
+.cut-toggle[aria-expanded="true"]{background:var(--accent-soft);color:var(--accent-ink)}
+.cut-toggle[aria-expanded="true"] svg{transform:rotate(45deg)}
+.cut-panel{display:grid;grid-template-rows:0fr;opacity:0;transform:translateY(-6px);transition:grid-template-rows .45s cubic-bezier(.2,.7,.2,1),opacity .35s,transform .45s cubic-bezier(.2,.7,.2,1)}
+.cut-panel>div{overflow:hidden;min-height:0}
+.cut-panel.open{grid-template-rows:1fr;opacity:1;transform:none}
+.cut-panel .cut-form{margin-top:14px}
 .chint{margin:-4px 0 14px;font-size:.8rem;color:var(--ink-3);word-break:keep-all}
 .comments,.cut-drop{word-break:keep-all}
 .cut-form{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:14px}
@@ -216,7 +225,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .cut-row button{border:0;background:var(--accent);color:var(--bg);border-radius:999px;padding:8px 20px;cursor:pointer;font-size:.86rem;flex-shrink:0}
 .cut-row button:disabled{opacity:.5;cursor:wait}
 .cerr{font-size:.8rem;color:var(--heart)}
-.clist{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:14px}
+.clist{list-style:none;margin:0 0 26px;padding:0;display:grid;gap:14px}
 .clist li.cut{display:grid;gap:10px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:12px}
 .cut-img{padding:0;border:0;background:none;cursor:zoom-in;display:block;width:100%}
 .cut-img img{display:block;width:100%;max-height:420px;object-fit:contain;background:var(--accent-soft);border-radius:4px}
@@ -398,7 +407,7 @@ input[type=email]:focus{outline:none;border-bottom-color:var(--accent)}
 <footer>
   <div class="wrap">
     <span>필사를 위한 詩選 · 한 자씩 옮겨 적으며 오래 머무는 곳</span>
-    <span>2026 10 GUHA · <button class="foot-admin" id="adminBtn">관리자</button></span>
+    <span>수록된 근대시·시조는 저작권 보호기간이 지난 작품입니다. · <button class="foot-admin" id="adminBtn">관리자</button></span>
   </div>
 </footer>
 
@@ -659,7 +668,7 @@ const busy=new Set();
 async function heart(kind,id,delta){const {data,error}=await sb.rpc("heart",{kind,target:id,delta});if(error)throw error;return data}
 
 /* ── 시 상세 ───────────────────────── */
-let lastFocus=null,curId=null,pending=null,cutTake=null;
+let lastFocus=null,curId=null,pending=null,cutTake=null,cutOpen=null;
 function openPoem(id){
   const p=byId(id);if(!p)return;curId=id;lastFocus=document.activeElement;
   const text=`${p.title} — ${p.author}\n\n${p.body}`;
@@ -692,8 +701,10 @@ function openPoem(id){
         <a href="https://story.kakao.com/share?url=${encodeURIComponent(location.href.split("#")[0])}" target="_blank" rel="noopener">카카오스토리</a>
       </div>
       <div class="comments">
-        <h4>필사 컷 남기기</h4>
-        <p class="chint">손으로 옮겨 적은 필사 사진과 짧은 감상을 함께 남겨 주세요. 남긴 필사 컷은 모든 방문자에게 보입니다.</p>
+        <ul class="clist" id="clist"></ul>
+        <button type="button" class="cut-toggle" id="cutToggle" aria-expanded="false" aria-controls="cutPanel">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>필사 컷 남기기</span></button>
+        <div class="cut-panel" id="cutPanel" inert><div>
         <form class="cut-form" id="cform" novalidate>
           <label class="cut-drop" id="cdrop" for="cfile"><input class="vh" type="file" id="cfile" accept="image/*">
             <svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M8 6l1.5-2h5L16 6"/><circle cx="12" cy="13" r="3.5"/></svg>
@@ -703,7 +714,7 @@ function openPoem(id){
           <textarea id="cinput" maxlength="200" rows="2" placeholder="필사하며 마음에 남은 구절이나 감상을 적어 주세요" aria-label="감상"></textarea>
           <div class="cut-row"><span class="cerr" id="cerr" role="alert"></span><button type="submit" id="csubmit">남기기</button></div>
         </form>
-        <ul class="clist" id="clist"></ul>
+        </div></div>
       </div>
     </article>
   </div>`;
@@ -733,6 +744,11 @@ function openPoem(id){
 
   /* 필사 컷 입력 */
   pending=null;
+  const toggle=$("#cutToggle"),panel=$("#cutPanel");
+  const setOpen=o=>{panel.classList.toggle("open",o);panel.inert=!o;toggle.setAttribute("aria-expanded",o);
+    if(o)setTimeout(()=>{if(panel.isConnected)panel.scrollIntoView({block:"nearest",behavior:"smooth"})},380)};
+  toggle.onclick=()=>setOpen(!panel.classList.contains("open"));
+  cutOpen=setOpen;
   const showPrev=v=>{if(pending?.preview)URL.revokeObjectURL(pending.preview);pending=v;
     $("#cimg").src=v?(v.preview||v.url):"";$("#cprev").hidden=!v;$("#cdrop").hidden=!!v;$("#curlRow").hidden=!!v;$("#cerr").textContent="";if(!v)$("#curl").value=""};
   const takeFile=async f=>{if(!f)return;if(!/^image\//.test(f.type)){$("#cerr").textContent="사진 파일만 올릴 수 있습니다.";return}
@@ -770,7 +786,7 @@ function openPoem(id){
       if(error)throw error;
       (CUTS[id]=CUTS[id]||[]).unshift(data);
       const st=CUT_STATS[id]||(CUT_STATS[id]={n:0,likes:0});st.n++;
-      if(curId===id){$("#cinput").value="";showPrev(null);renderComments()}
+      if(curId===id){$("#cinput").value="";showPrev(null);renderComments();setOpen(false)}
       renderManage();toast("필사 컷을 남겼습니다");
     }catch(err){console.error(err);errEl.textContent=errMsg(err,"필사 컷을 올리지 못했습니다. 잠시 후 다시 시도해 주세요.")}
     finally{btn.disabled=false;btn.textContent="남기기"}
@@ -796,11 +812,13 @@ async function loadCuts(id){
 }
 function renderComments(){
   const ul=$("#clist");if(!ul)return;const cs=CUTS[curId];
-  if(!sb){ul.innerHTML="";return}
+  ul.hidden=false;
+  if(!sb){ul.innerHTML="";ul.hidden=true;return}
   if(!cs){ul.innerHTML=`<li class="muted">필사 컷을 불러오는 중입니다…</li>`;return}
   ul.innerHTML=cs.length?cs.map(c=>{const d=new Date(c.created_at),img=safeUrl(c.image_url);
     return `<li class="cut">${img?`<button class="cut-img" data-zoom="${esc(img)}" aria-label="필사 사진 크게 보기"><img src="${esc(img)}" alt="필사 컷" loading="lazy"></button>`:""}${c.note?`<p class="cut-text">${esc(c.note)}</p>`:""}<div class="cut-meta"><button class="cut-like" data-cl="${c.id}" aria-pressed="${!!L.cutLikes[c.id]}" aria-label="이 필사 컷에 좋아요"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg><span>${c.likes}</span></button><span class="r"><time>${d.getMonth()+1}.${d.getDate()}</time>${ADMIN?`<button class="cdel" data-ci="${c.id}" aria-label="필사 컷 삭제">✕</button>`:""}</span></div></li>`}).join("")
-    :`<li class="muted">첫 필사 컷을 남겨 주세요.</li>`;
+    :"";
+  ul.hidden=!cs.length;
 }
 
 /* 필사 컷 하트·삭제·크게 보기 */
@@ -854,12 +872,12 @@ async function fromUrl(u){
 }
 document.addEventListener("paste",e=>{if(!cutTake||!$("#cform"))return;
   const items=[...(e.clipboardData?.items||[])];const it=items.find(x=>x.kind==="file"&&/^image\//.test(x.type));
-  if(it){e.preventDefault();cutTake(it.getAsFile());return}
+  if(it){e.preventDefault();cutOpen?.(true);cutTake(it.getAsFile());return}
   const txt=e.clipboardData?.getData("text")?.trim()||"";
-  if(!/^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName||"")&&/^https?:\/\/\S+\.(jpe?g|png|gif|webp|avif)(\?\S*)?$/i.test(txt)){e.preventDefault();$("#curl").value=txt;$("#curlBtn").click()}
+  if(!/^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName||"")&&/^https?:\/\/\S+\.(jpe?g|png|gif|webp|avif)(\?\S*)?$/i.test(txt)){e.preventDefault();cutOpen?.(true);$("#curl").value=txt;$("#curlBtn").click()}
 });
 
-function closePoem(){const ov=$("#ov");if(!ov)return;cutTake=null;if(pending?.preview)URL.revokeObjectURL(pending.preview);pending=null;ov.classList.remove("show");document.body.style.overflow="";curId=null;setTimeout(()=>{$("#modalRoot").innerHTML="";lastFocus?.focus()},250)}
+function closePoem(){const ov=$("#ov");if(!ov)return;cutTake=null;cutOpen=null;if(pending?.preview)URL.revokeObjectURL(pending.preview);pending=null;ov.classList.remove("show");document.body.style.overflow="";curId=null;setTimeout(()=>{$("#modalRoot").innerHTML="";lastFocus?.focus()},250)}
 document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;const lb=document.querySelector(".lightbox");if(lb){lb.remove();return}closePoem()});
 
 /* ── 관리자 (Supabase 로그인 + admins 표 확인) ── */
