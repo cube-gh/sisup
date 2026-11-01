@@ -312,6 +312,8 @@ input[type=email]:focus{outline:none;border-bottom-color:var(--accent)}
 .cyes{color:var(--heart);border-color:color-mix(in srgb,var(--heart) 50%,var(--line))}
 .clist li.cut{grid-template-columns:minmax(0,1fr)}
 .clist li.muted{color:var(--ink-3);font-family:var(--serif);font-size:.92rem}
+/* 아이폰: 입력 칸을 누를 때 화면이 확대되지 않도록 글자 크기 16px 유지 */
+@media (hover:none) and (pointer:coarse){input,textarea,select{font-size:16px!important}}
 </style>
 </head>
 <body>
