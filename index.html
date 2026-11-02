@@ -252,6 +252,11 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .admin-bar .wrap{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-block:6px}
 .admin-bar a,.admin-bar button{color:var(--bg);background:none;border:0;cursor:pointer;font-size:.8rem;text-decoration:underline;text-underline-offset:3px;padding:0}
 .admin-bar .links{display:flex;gap:16px}
+.ab-visits{margin-left:10px;padding-left:10px;border-left:1px solid color-mix(in srgb,var(--bg) 35%,transparent);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ab-visits:empty{display:none}
+.admin-bar .links a,.admin-bar .links button{white-space:nowrap}
+@media (max-width:640px){.ab-note{display:none}.admin-bar .wrap>span:first-child{white-space:nowrap}.ab-visits{margin-left:8px;padding-left:8px}}
+@media (max-width:440px){.ab-label{display:none}.ab-visits{margin-left:0;padding-left:0;border-left:0}.admin-bar .wrap{gap:8px}.admin-bar .links{gap:12px}}
 .foot-admin{background:none;border:0;color:var(--ink-3);cursor:pointer;font-size:.8rem;text-decoration:underline;text-underline-offset:3px;padding:0}
 .adm-acts{display:flex;gap:8px;flex-wrap:wrap;padding:0 clamp(24px,8vw,72px) 24px}
 .adm-acts .label{font-size:.74rem;color:var(--ink-3);letter-spacing:.1em;align-self:center;margin-right:4px}
@@ -275,6 +280,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 input[type=password]{border:0;border-bottom:1px solid var(--line);background:transparent;padding:8px 2px;font-size:1rem;border-radius:0}
 input[type=password]:focus{outline:none;border-bottom-color:var(--accent)}
 .stats{display:flex;gap:28px;flex-wrap:wrap;margin-bottom:20px;font-size:.84rem;color:var(--ink-3)}
+.stats-warn{align-self:center;color:var(--accent-ink)}
 .stats b{display:block;font-family:var(--serif);font-size:1.5rem;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
 .mlist-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--paper)}
 .mlist{width:100%;border-collapse:collapse;font-size:.88rem;min-width:620px}
@@ -319,7 +325,7 @@ input[type=email]:focus{outline:none;border-bottom-color:var(--accent)}
 <body>
 <header>
   <div class="admin-bar" id="adminBar" hidden>
-    <div class="wrap"><span>관리자 모드 · 시 등록, 편집, 삭제가 모든 방문자에게 바로 반영됩니다</span>
+    <div class="wrap"><span><span class="ab-label">관리자 모드</span><span class="ab-note"> · 시 등록, 편집, 삭제가 모든 방문자에게 바로 반영됩니다</span><span class="ab-visits" id="visitBar"></span></span>
       <span class="links"><a href="#write">시 등록</a><a href="#manage">시 관리</a><button id="logoutBtn">로그아웃</button></span></div>
   </div>
   <div class="wrap bar">
@@ -890,7 +896,21 @@ function sheet(inner,labelId){
   const ov=$("#ov");requestAnimationFrame(()=>ov.classList.add("show"));document.body.style.overflow="hidden";
   ov.addEventListener("click",e=>{if(e.target===ov)closePoem()});$("#closeBtn").onclick=closePoem;
 }
-async function checkAdmin(){const {data,error}=await sb.rpc("is_admin");ADMIN=!error&&data===true;return ADMIN}
+/* ── 방문자 카운터 (관리자만 보기, 관리자 기기는 세지 않음) ── */
+let VISITS=null;
+const NOCOUNT="sisup:nocount";
+function markAdminDevice(){try{localStorage.setItem(NOCOUNT,"1")}catch(e){}}
+function isAdminDevice(){try{return localStorage.getItem(NOCOUNT)==="1"}catch(e){return false}}
+async function trackVisit(){if(!sb||ADMIN||isAdminDevice())return;try{await sb.rpc("track_visit")}catch(e){}}
+async function loadVisits(){
+  if(!sb||!ADMIN)return;
+  const {data,error}=await sb.rpc("visit_stats");
+  VISITS=error?{err:true}:{total:Number(data?.total)||0,today:Number(data?.today)||0};
+  paintVisits();renderManage();
+}
+function paintVisits(){const el=$("#visitBar");if(!el)return;const n=x=>x.toLocaleString("ko-KR");
+  el.textContent=!ADMIN||!VISITS?"":VISITS.err?"방문자 집계 준비 전":`오늘 ${n(VISITS.today)} · 전체 ${n(VISITS.total)}`}
+async function checkAdmin(){const {data,error}=await sb.rpc("is_admin");ADMIN=!error&&data===true;if(ADMIN)markAdminDevice();return ADMIN}
 
 function openLogin(){
   if(ADMIN){$("#manage").scrollIntoView();return}
@@ -916,7 +936,7 @@ function openLogin(){
 async function logout(){try{await sb?.auth.signOut()}catch(e){}ADMIN=false;applyAdmin();toast("로그아웃했습니다")}
 
 function applyAdmin(){const on=ADMIN;$("#adminBar").hidden=!on;$("#manage").hidden=!on;$("#write").hidden=!on;$("#adminBtn").textContent=on?"시 관리":"관리자";
-  if(on)loadCutStats();renderAll();if(curId&&$("#clist"))renderComments()}
+  if(on){loadCutStats();loadVisits()}else{VISITS=null}paintVisits();renderAll();if(curId&&$("#clist"))renderComments()}
 
 async function deletePoem(id){
   const p=byId(id);if(!p)return false;
@@ -964,7 +984,11 @@ function renderManage(){
   const cuts=Object.values(CUT_STATS).reduce((a,s)=>a+s.n,0);
   const hearts=POEMS.reduce((a,p)=>a+(p.likes||0),0)+Object.values(CUT_STATS).reduce((a,s)=>a+s.likes,0);
   $("#seedBox").hidden=!(loaded&&!loadError&&POEMS.length===0);
-  $("#stats").innerHTML=`<span><b>${POEMS.length}</b>게시 중</span><span><b>${cuts}</b>필사 컷</span><span><b>${hearts}</b>하트</span>`;
+  const vn=x=>x.toLocaleString("ko-KR");
+  const vis=!VISITS?`<span><b>…</b>오늘 방문</span><span><b>…</b>전체 방문</span>`
+    :VISITS.err?`<span class="stats-warn">방문자 집계 표가 아직 없습니다 · Supabase SQL 편집기에서 방문자 카운터 SQL을 실행해 주세요</span>`
+    :`<span><b>${vn(VISITS.today)}</b>오늘 방문</span><span><b>${vn(VISITS.total)}</b>전체 방문</span>`;
+  $("#stats").innerHTML=vis+`<span><b>${POEMS.length}</b>게시 중</span><span><b>${cuts}</b>필사 컷</span><span><b>${hearts}</b>하트</span>`;
   const fmt=t=>{const d=new Date(t);return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`};
   $("#mbody").innerHTML=POEMS.length?POEMS.map(p=>{const s=CUT_STATS[p.id]||{n:0};
     return `<tr><td class="tt">${esc(p.title)}</td><td>${esc(p.author)}</td><td class="num" style="text-align:left">${fmt(p.created_at)}</td><td class="num">${s.n}</td><td class="num">${p.likes}</td><td><div class="ops" data-row="${p.id}"><button data-op="view" data-id="${p.id}">보기</button><button data-op="edit" data-id="${p.id}">편집</button><button class="del" data-op="del" data-id="${p.id}">삭제</button></div></td></tr>`}).join("")
@@ -1016,6 +1040,7 @@ paintIcon();renderAll();
   await loadPoems();
   if(!sb)return;
   try{const {data}=await sb.auth.getSession();if(data?.session&&await checkAdmin())applyAdmin()}catch(e){}
+  trackVisit();
   sb.auth.onAuthStateChange(ev=>{if(ev==="SIGNED_OUT"&&ADMIN){ADMIN=false;applyAdmin()}});
 })();
 </script>
