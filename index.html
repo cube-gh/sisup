@@ -255,7 +255,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .ab-visits{margin-left:10px;padding-left:10px;border-left:1px solid color-mix(in srgb,var(--bg) 35%,transparent);font-variant-numeric:tabular-nums;white-space:nowrap}
 .ab-visits:empty{display:none}
 .admin-bar .links a,.admin-bar .links button{white-space:nowrap}
-@media (max-width:640px){.ab-note{display:none}.admin-bar .wrap>span:first-child{white-space:nowrap}.ab-visits{margin-left:8px;padding-left:8px}}
+@media (max-width:640px){.admin-bar .wrap>span:first-child{white-space:nowrap}.ab-visits{margin-left:8px;padding-left:8px}}
 @media (max-width:440px){.ab-label{display:none}.ab-visits{margin-left:0;padding-left:0;border-left:0}.admin-bar .wrap{gap:8px}.admin-bar .links{gap:12px}}
 .foot-admin{background:none;border:0;color:var(--ink-3);cursor:pointer;font-size:.8rem;text-decoration:underline;text-underline-offset:3px;padding:0}
 .adm-acts{display:flex;gap:8px;flex-wrap:wrap;padding:0 clamp(24px,8vw,72px) 24px}
@@ -325,7 +325,7 @@ input[type=email]:focus{outline:none;border-bottom-color:var(--accent)}
 <body>
 <header>
   <div class="admin-bar" id="adminBar" hidden>
-    <div class="wrap"><span><span class="ab-label">관리자 모드</span><span class="ab-note"> · 시 등록, 편집, 삭제가 모든 방문자에게 바로 반영됩니다</span><span class="ab-visits" id="visitBar"></span></span>
+    <div class="wrap"><span><span class="ab-label">관리자 모드</span><span class="ab-visits" id="visitBar"></span></span>
       <span class="links"><a href="#write">시 등록</a><a href="#manage">시 관리</a><button id="logoutBtn">로그아웃</button></span></div>
   </div>
   <div class="wrap bar">
@@ -910,6 +910,9 @@ async function loadVisits(){
 }
 function paintVisits(){const el=$("#visitBar");if(!el)return;const n=x=>x.toLocaleString("ko-KR");
   el.textContent=!ADMIN||!VISITS?"":VISITS.err?"방문자 집계 준비 전":`오늘 ${n(VISITS.today)} · 전체 ${n(VISITS.total)}`}
+setInterval(()=>{if(ADMIN&&!document.hidden)loadVisits()},60000);
+document.addEventListener("visibilitychange",()=>{if(ADMIN&&!document.hidden)loadVisits()});
+window.addEventListener("pageshow",e=>{if(e.persisted&&ADMIN)loadVisits()});
 async function checkAdmin(){const {data,error}=await sb.rpc("is_admin");ADMIN=!error&&data===true;if(ADMIN)markAdminDevice();return ADMIN}
 
 function openLogin(){
