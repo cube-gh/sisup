@@ -668,6 +668,11 @@ $("#poetList").addEventListener("click",e=>{const b=e.target.closest("[data-poet
 
 /* ── 검색·메뉴·화면 모드 ─────────────── */
 let qt;$("#q").addEventListener("input",e=>{clearTimeout(qt);qt=setTimeout(()=>{filter.q=e.target.value.trim();filter.saved=false;if(filter.q)filter.poet=null;renderGrid();if(filter.q)$("#theme").scrollIntoView()},220)});
+$(".logo").addEventListener("click",e=>{e.preventDefault();
+  if($("#ov"))closePoem();document.querySelector(".lightbox")?.remove();
+  filter={poet:null,q:"",saved:false};$("#q").value="";$("#q").blur();renderGrid();
+  if(location.hash)history.replaceState(null,"",location.pathname+location.search);
+  window.scrollTo({top:0,behavior:"smooth"})});
 document.querySelector("[data-saved]").addEventListener("click",e=>{e.preventDefault();filter={poet:null,q:"",saved:true};$("#q").value="";renderGrid();$("#theme").scrollIntoView()});
 const ICON={sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>'};
 const isDark=()=>{const t=document.documentElement.dataset.theme;return t?t==="dark":matchMedia("(prefers-color-scheme: dark)").matches};
