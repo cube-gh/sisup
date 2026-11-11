@@ -290,6 +290,16 @@ input[type=password]:focus{outline:none;border-bottom-color:var(--accent)}
 .mlist tr:last-child td{border-bottom:0}
 .mlist tr.off td{color:var(--ink-3)}
 .mlist .tt{font-family:var(--serif);font-weight:600}
+.mlist .drag-h,.mlist .drag-c{width:36px;padding-left:8px;padding-right:0}
+.mlist .drag{display:grid;place-items:center;width:30px;height:34px;border:0;background:none;border-radius:6px;cursor:grab;color:var(--ink-3);touch-action:none;-webkit-user-select:none;user-select:none}
+.mlist .drag:hover,.mlist .drag:focus-visible{color:var(--ink);background:var(--accent-soft)}
+.mlist .drag svg{width:18px;height:18px;fill:currentColor}
+.mlist tr.dragging{position:relative;z-index:2;background:var(--paper);box-shadow:0 8px 24px rgba(0,0,0,.14)}
+.mlist tr.dragging td{border-bottom-color:transparent}
+.mlist tr.dragging .drag{cursor:grabbing;color:var(--accent-ink)}
+body.sorting{-webkit-user-select:none;user-select:none;cursor:grabbing}
+.order-hint{margin:-8px 0 14px;font-size:.8rem;color:var(--ink-3)}
+.order-hint.warn{color:var(--accent-ink)}
 .mlist .num{font-variant-numeric:tabular-nums;text-align:right}
 .pill{display:inline-block;font-size:.72rem;padding:2px 9px;border-radius:999px;border:1px solid var(--line);color:var(--ink-2);white-space:nowrap}
 .pill.edited{border-color:var(--accent);color:var(--accent-ink)}
@@ -409,7 +419,8 @@ input[type=email]:focus{outline:none;border-bottom-color:var(--accent)}
       <button class="btn" type="button" id="seedBtn">기본 시 11편 불러오기</button>
     </div>
     <div class="stats" id="stats"></div>
-    <div class="mlist-wrap"><table class="mlist"><thead><tr><th>제목</th><th>시인</th><th>등록일</th><th class="num">필사 컷</th><th class="num">하트</th><th></th></tr></thead><tbody id="mbody"></tbody></table></div>
+    <p class="order-hint" id="orderHint"></p>
+    <div class="mlist-wrap"><table class="mlist"><thead><tr><th class="drag-h" aria-label="순서"></th><th>제목</th><th>시인</th><th>등록일</th><th class="num">필사 컷</th><th class="num">하트</th><th></th></tr></thead><tbody id="mbody"></tbody></table></div>
     <form class="pw-form" id="pwForm" novalidate>
       <label for="pw-new">새 관리자 비밀번호<input type="password" id="pw-new" autocomplete="new-password" placeholder="12자 이상"></label>
       <label for="pw-again">한 번 더 입력<input type="password" id="pw-again" autocomplete="new-password"></label>
@@ -573,7 +584,7 @@ const store={get(k,d){try{const v=localStorage.getItem("pilsa:"+k);return v?JSON
 const L={likes:store.get("likes",{}),cutLikes:store.get("cutLikes",{}),marks:store.get("marks",{}),font:store.get("font",1.0625)};
 const saveL=()=>Object.keys(L).forEach(k=>store.set(k,L[k]));
 
-let POEMS=[],loaded=false,loadError="";
+let POEMS=[],loaded=false,loadError="",ORDER_READY=false;
 let CUTS={};       // 시 id → 필사 컷 목록 (시를 열 때 불러옴)
 let CUT_STATS={};  // 시 id → {n, likes} (관리자 표)
 let ADMIN=false;
@@ -611,7 +622,10 @@ function errMsg(e,fallback){
 /* ── 불러오기 ─────────────────────── */
 async function loadPoems(){
   if(!sb){loaded=true;loadError=CONFIGURED?"lib":"config";renderAll();return}
-  const {data,error}=await sb.from("poems").select("id,title,author,body,likes,created_at").order("created_at",{ascending:false});
+  let {data,error}=await sb.from("poems").select("id,title,author,body,likes,created_at,sort_order").order("sort_order",{ascending:true,nullsFirst:false}).order("created_at",{ascending:false});
+  ORDER_READY=!error;
+  if(error&&(error.code==="42703"||/sort_order/.test(error.message||"")))
+    ({data,error}=await sb.from("poems").select("id,title,author,body,likes,created_at").order("created_at",{ascending:false}));
   loaded=true;
   if(error){console.error(error);loadError="fetch"}else{loadError="";POEMS=data||[]}
   renderAll();
@@ -1006,10 +1020,57 @@ function renderManage(){
     :`<span><b>${vn(VISITS.today)}</b>오늘 방문</span><span><b>${vn(VISITS.total)}</b>전체 방문</span>`;
   $("#stats").innerHTML=vis+`<span><b>${POEMS.length}</b>게시 중</span><span><b>${cuts}</b>필사 컷</span><span><b>${hearts}</b>하트</span>`;
   const fmt=t=>{const d=new Date(t);return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`};
+  const oh=$("#orderHint");oh.classList.toggle("warn",loaded&&!loadError&&!ORDER_READY);
+  oh.textContent=!loaded||loadError?"":ORDER_READY?"왼쪽 ⠿ 손잡이를 끌어 순서를 바꾸면 방문자 목록에도 그대로 반영됩니다.":"순서 바꾸기를 쓰려면 Supabase SQL 편집기에서 시 순서 SQL(poem-order.sql)을 한 번 실행해 주세요.";
   $("#mbody").innerHTML=POEMS.length?POEMS.map(p=>{const s=CUT_STATS[p.id]||{n:0};
-    return `<tr><td class="tt">${esc(p.title)}</td><td>${esc(p.author)}</td><td class="num" style="text-align:left">${fmt(p.created_at)}</td><td class="num">${s.n}</td><td class="num">${p.likes}</td><td><div class="ops" data-row="${p.id}"><button data-op="view" data-id="${p.id}">보기</button><button data-op="edit" data-id="${p.id}">편집</button><button class="del" data-op="del" data-id="${p.id}">삭제</button></div></td></tr>`}).join("")
-    :`<tr><td colspan="6" style="color:var(--ink-3);text-align:center;padding:28px">${loaded?"아직 수록된 시가 없습니다.":"불러오는 중입니다…"}</td></tr>`;
+    return `<tr data-pid="${p.id}"><td class="drag-c">${ORDER_READY?`<button type="button" class="drag" data-drag aria-label="「${esc(p.title)}」 순서 옮기기 (위아래 화살표 키로도 옮길 수 있습니다)" title="끌어서 순서 바꾸기"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/></svg></button>`:""}</td><td class="tt">${esc(p.title)}</td><td>${esc(p.author)}</td><td class="num" style="text-align:left">${fmt(p.created_at)}</td><td class="num">${s.n}</td><td class="num">${p.likes}</td><td><div class="ops" data-row="${p.id}"><button data-op="view" data-id="${p.id}">보기</button><button data-op="edit" data-id="${p.id}">편집</button><button class="del" data-op="del" data-id="${p.id}">삭제</button></div></td></tr>`}).join("")
+    :`<tr><td colspan="7" style="color:var(--ink-3);text-align:center;padding:28px">${loaded?"아직 수록된 시가 없습니다.":"불러오는 중입니다…"}</td></tr>`;
 }
+/* ── 시 순서 끌어서 바꾸기 (마우스·손가락 모두) ── */
+let sortBusy=false;
+async function saveOrder(prev){
+  sortBusy=true;
+  const {error}=await sb.rpc("reorder_poems",{ids:POEMS.map(p=>String(p.id))});
+  sortBusy=false;
+  if(error){console.error(error);POEMS=prev;renderAll();toast(errMsg(error,"순서를 저장하지 못했습니다. 다시 시도해 주세요."));return}
+  POEMS.forEach((p,i)=>p.sort_order=i+1);renderGrid();toast("순서를 저장했습니다");
+}
+function applyDomOrder(prev){
+  const ids=[...$("#mbody").querySelectorAll("tr[data-pid]")].map(r=>r.dataset.pid);
+  if(ids.join()===prev.map(p=>String(p.id)).join())return;
+  const map=new Map(POEMS.map(p=>[String(p.id),p]));POEMS=ids.map(id=>map.get(id)).filter(Boolean);
+  saveOrder(prev);
+}
+$("#mbody").addEventListener("pointerdown",e=>{
+  const h=e.target.closest("[data-drag]");if(!h||!ADMIN||!ORDER_READY||sortBusy||e.button>0)return;
+  e.preventDefault();
+  const row=h.closest("tr"),body=$("#mbody"),prev=[...POEMS];
+  let lastY=e.clientY,raf=0,scrollV=0;
+  row.classList.add("dragging");document.body.classList.add("sorting");
+  try{h.setPointerCapture(e.pointerId)}catch(_){}
+  const rect0=row.getBoundingClientRect();let grabOff=e.clientY-rect0.top;
+  const place=()=>{
+    const rows=[...body.querySelectorAll("tr[data-pid]")].filter(r=>r!==row);
+    let before=null;for(const r of rows){const b=r.getBoundingClientRect();if(lastY<b.top+b.height/2){before=r;break}}
+    if(before!==row.nextElementSibling||(!before&&row!==body.lastElementChild)){before?body.insertBefore(row,before):body.appendChild(row)}
+    const now=row.getBoundingClientRect();row.style.transform=`translateY(${lastY-grabOff-now.top}px)`;
+  };
+  const tick=()=>{if(scrollV){window.scrollBy(0,scrollV);place()}raf=scrollV?requestAnimationFrame(tick):0};
+  const move=ev=>{lastY=ev.clientY;row.style.transform="";place();
+    const edge=70,v=lastY<edge?-(edge-lastY)/5:lastY>innerHeight-edge?(lastY-(innerHeight-edge))/5:0;
+    scrollV=Math.round(v);if(scrollV&&!raf)raf=requestAnimationFrame(tick)};
+  const end=()=>{h.removeEventListener("pointermove",move);h.removeEventListener("pointerup",end);h.removeEventListener("pointercancel",end);
+    scrollV=0;cancelAnimationFrame(raf);row.style.transform="";row.classList.remove("dragging");document.body.classList.remove("sorting");
+    applyDomOrder(prev)};
+  h.addEventListener("pointermove",move);h.addEventListener("pointerup",end);h.addEventListener("pointercancel",end);
+});
+$("#mbody").addEventListener("keydown",e=>{
+  const h=e.target.closest("[data-drag]");if(!h||!ORDER_READY||sortBusy||(e.key!=="ArrowUp"&&e.key!=="ArrowDown"))return;
+  e.preventDefault();const id=h.closest("tr").dataset.pid,i=POEMS.findIndex(p=>String(p.id)===id),j=i+(e.key==="ArrowUp"?-1:1);
+  if(i<0||j<0||j>=POEMS.length)return;
+  const prev=[...POEMS];[POEMS[i],POEMS[j]]=[POEMS[j],POEMS[i]];renderManage();
+  $(`#mbody tr[data-pid="${CSS.escape(id)}"] [data-drag]`)?.focus();saveOrder(prev);
+});
 $("#mbody").addEventListener("click",async e=>{const b=e.target.closest("[data-op]");if(!b||!ADMIN)return;const id=b.dataset.id,op=b.dataset.op;
   if(op==="view")return openPoem(id);
   if(op==="edit")return openEditor(id);
