@@ -119,6 +119,7 @@ section{scroll-margin-top:120px}
 .total{display:flex;align-items:center;gap:14px;margin-bottom:26px;font-size:.88rem;color:var(--ink-2);flex-wrap:wrap}
 .total::after{content:"";flex:1;min-width:40px;height:1px;background:var(--line);order:2}
 .total b{font-family:var(--serif);font-weight:600;font-size:1.25rem;color:var(--ink);font-variant-numeric:tabular-nums;margin:0 2px}
+.total .reset b{color:var(--accent-ink)}
 .total .reset{order:3;background:none;border:0;padding:0;color:var(--accent-ink);font-size:.84rem;cursor:pointer;border-bottom:1px solid var(--accent)}
 
 /* Cards */
@@ -644,7 +645,7 @@ function renderGrid(){
   if(filter.poet)list=list.filter(p=>p.author===filter.poet);
   if(filter.q){const q=filter.q.toLowerCase();list=list.filter(p=>(p.title+p.author+p.body).toLowerCase().includes(q))}
   const label=filter.saved?"북마크한 시":filter.poet?`${esc(filter.poet)}의 시`:filter.q?`'${esc(filter.q)}' 검색 결과`:"";
-  $("#total").innerHTML=!loaded?"":label?`<span>${label} <b>${list.length}</b>편</span><button class="reset" id="showAll">전체 ${all().length}편 보기</button>`:`<span>게시된 시 전체 <b>${list.length}</b>편</span>`;
+  $("#total").innerHTML=!loaded?"":label?`<span>${label} <b>${list.length}</b>편</span><button class="reset" id="showAll">전체 <b>${all().length}</b>편 보기</button>`:`<span>게시된 시 전체 <b>${list.length}</b>편</span>`;
   const empty=!loaded?"시를 불러오는 중입니다…":loadError?"":filter.saved?"아직 북마크한 시가 없습니다.<br>시를 읽다가 마음에 남는 시를 북마크해 보세요.":(filter.q||filter.poet)?"찾는 시가 없습니다. 다른 단어로 검색해 보세요.":"아직 수록된 시가 없습니다."+(ADMIN?"<br>시 관리에서 기본 시를 불러오거나 새 시를 등록해 주세요.":"");
   $("#grid").innerHTML=list.length?list.map((p,i)=>`
     <button class="card" data-id="${p.id}" style="animation-delay:${Math.min(i,8)*40}ms">
@@ -656,7 +657,7 @@ function renderGrid(){
     </button>`).join(""):(empty?`<div class="empty">${empty}</div>`:"");
 }
 $("#grid").addEventListener("click",e=>{const c=e.target.closest(".card");if(c)openPoem(c.dataset.id)});
-$("#total").addEventListener("click",e=>{if(e.target.id!=="showAll")return;filter={poet:null,q:"",saved:false};$("#q").value="";renderGrid()});
+$("#total").addEventListener("click",e=>{if(!e.target.closest("#showAll"))return;filter={poet:null,q:"",saved:false};$("#q").value="";renderGrid()});
 
 /* ── 시인별 ───────────────────────── */
 function renderPoets(){
